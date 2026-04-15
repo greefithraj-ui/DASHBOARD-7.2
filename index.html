@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>G-Sheet Quality Dashboard</title>
   
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="apple-touch-icon" href="/icon-192x192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192x192.png" />
   <meta name="theme-color" content="#0f1117">
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -24,20 +24,27 @@
     }
   }
   </script>
-  <link rel="stylesheet" href="/src/index.css">
+  <link rel="stylesheet" href="src/index.css">
 </head>
 <body class="bg-[#0f1117]">
   <div id="root"></div>
-  <script type="module" src="/src/index.tsx"></script>
+  <script type="module" src="src/index.tsx"></script>
 
   <script>
+    // 1. Register the Service Worker using a relative path
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('Service Worker registered', reg))
-          .catch(err => console.log('Service Worker registration failed', err));
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW Registered:', reg.scope))
+          .catch(err => console.error('SW Registration Failed:', err));
       });
     }
+
+    // 2. Debugging: Log when the browser is ready to show the install prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('✅ PWA is installable! "beforeinstallprompt" event fired.');
+      // Optionally save the event to trigger it with a custom button later
+    });
   </script>
 </body>
 </html>
