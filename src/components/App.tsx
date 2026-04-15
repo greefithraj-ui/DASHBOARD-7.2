@@ -737,9 +737,9 @@ ${rejectedDetailsStr || 'None'}
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center">
                 <img 
-                  src={`/logo.png?v=${Date.now()}`}
-                  alt=""
-                  style={{ maxHeight: '48px', width: 'auto', objectFit: 'contain' }}
+                  src="/icon-192x192.png"
+                  alt="Logo"
+                  style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
                   className="rounded-xl"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
