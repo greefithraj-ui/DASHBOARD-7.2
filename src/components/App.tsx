@@ -736,15 +736,15 @@ ${rejectedDetailsStr || 'None'}
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center">
-                <img 
-                  src={`/logo.png?v=${Date.now()}`}
-                  alt=""
-                  style={{ maxHeight: '48px', width: 'auto', objectFit: 'contain' }}
-                  className="rounded-xl"
-                  onError={(e) => {
+               <img 
+                   src="/icon-192x192.png"
+                    alt="Dashboard Logo"
+                    style={{ maxHeight: '48px', width: 'auto', objectFit: 'contain' }}
+                     className="rounded-xl"
+                        onError={(e) => {
                     e.currentTarget.style.display = 'none';
-                  }}
-                />
+                        }}
+                    />
               </div>
               <div>
                 <h1 className="text-xl font-black text-white leading-tight tracking-tight uppercase">Dashboard</h1>
