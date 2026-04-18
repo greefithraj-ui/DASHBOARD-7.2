@@ -4,47 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>G-Sheet Quality Dashboard</title>
-  
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192x192.png" />
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0f1117">
-
+  <link rel="apple-touch-icon" href="/logo.png">
+  <link rel="shortcut icon" href="/logo.png" type="image/x-icon">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  
   <script type="importmap">
-  {
-    "imports": {
-      "react/": "https://esm.sh/react@^19.2.4/",
-      "react": "https://esm.sh/react@^19.2.4",
-      "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-      "lucide-react": "https://esm.sh/lucide-react@^0.570.0",
-      "papaparse": "https://esm.sh/papaparse@^5.5.3",
-      "date-fns": "https://esm.sh/date-fns@^4.1.0"
-    }
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.570.0",
+    "papaparse": "https://esm.sh/papaparse@^5.5.3",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0"
   }
-  </script>
-  <link rel="stylesheet" href="src/index.css">
+}
+</script>
+<link rel="stylesheet" href="/src/index.css">
 </head>
 <body class="bg-[#0f1117]">
   <div id="root"></div>
-  <script type="module" src="src/index.tsx"></script>
-
-  <script>
-    // 1. Register the Service Worker using a relative path
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('SW Registered:', reg.scope))
-          .catch(err => console.error('SW Registration Failed:', err));
-      });
-    }
-
-    // 2. Debugging: Log when the browser is ready to show the install prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('✅ PWA is installable! "beforeinstallprompt" event fired.');
-      // Optionally save the event to trigger it with a custom button later
+<script type="module" src="/src/index.tsx"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.log('Service Worker registration failed', err));
     });
-  </script>
+  }
+</script>
 </body>
 </html>

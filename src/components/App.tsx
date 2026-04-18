@@ -27,6 +27,23 @@ const MemoizedAcceptedDrilldownModal = memo(AcceptedDrilldownModal);
 const MemoizedSettingsMenu = memo(SettingsMenu);
 
 const App: React.FC = () => {
+  // Utility for safe local storage operations
+  const safeLocalStorageSet = useCallback((key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        console.warn(`LocalStorage quota exceeded for key: ${key}. Clearing cache.`);
+        // Try to clear some space or at least remove the key that's failing
+        localStorage.removeItem(key);
+      } else {
+        console.error(`Error saving to LocalStorage for key: ${key}`, e);
+      }
+      return false;
+    }
+  }, []);
+
   const [config, setConfig] = useState<SheetConfig>(() => {
     const saved = localStorage.getItem('qc_dashboard_config');
     if (saved) {
@@ -50,12 +67,15 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('qc_dashboard_cached_data');
     if (!saved) return [];
     try {
-      const parsed = JSON.parse(saved) as DashboardRow[];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      
       // Re-parse dates because JSON.parse turns them into strings
       return parsed.map(row => ({
         ...row,
         date: row.date ? new Date(row.date) : null,
-        _parsedDate: row._parsedDate ? new Date(row._parsedDate) : null
+        _parsedDate: row._parsedDate ? new Date(row._parsedDate) : null,
+        _inventoryDate: row._inventoryDate ? new Date(row._inventoryDate) : null
       }));
     } catch (e) {
       console.error("Failed to parse cached data", e);
@@ -64,7 +84,13 @@ const App: React.FC = () => {
   });
   const [headers, setHeaders] = useState<string[]>(() => {
     const saved = localStorage.getItem('qc_dashboard_cached_headers');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
   });
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
@@ -102,7 +128,13 @@ const App: React.FC = () => {
 
   const [selectedBatches, setSelectedBatches] = useState<string[]>(() => {
     const saved = localStorage.getItem('qc_dashboard_selected_batches');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
   });
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => {
     const saved = localStorage.getItem('qc_dashboard_date_range');
@@ -156,43 +188,54 @@ const App: React.FC = () => {
     
     const newConfig = { ...config, sheetName };
     setConfig(newConfig);
-    localStorage.setItem('qc_dashboard_config', JSON.stringify(newConfig));
-  }, [config]);
+    safeLocalStorageSet('qc_dashboard_config', JSON.stringify(newConfig));
+  }, [config, safeLocalStorageSet]);
 
   const handleConfigUpdate = useCallback((newConfig: SheetConfig) => {
     syncLatestData();
     setConfig(newConfig);
-    localStorage.setItem('qc_dashboard_config', JSON.stringify(newConfig));
-  }, [syncLatestData]);
+    safeLocalStorageSet('qc_dashboard_config', JSON.stringify(newConfig));
+  }, [syncLatestData, safeLocalStorageSet]);
+
+  // Use a second ref for copy toast timer
+  const copyToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Persistence effects
   useEffect(() => {
-    localStorage.setItem('qc_dashboard_selected_batches', JSON.stringify(selectedBatches));
-  }, [selectedBatches]);
+    safeLocalStorageSet('qc_dashboard_selected_batches', JSON.stringify(selectedBatches));
+  }, [selectedBatches, safeLocalStorageSet]);
 
   useEffect(() => {
-    localStorage.setItem('qc_dashboard_date_range', JSON.stringify(dateRange));
-  }, [dateRange]);
+    safeLocalStorageSet('qc_dashboard_date_range', JSON.stringify(dateRange));
+  }, [dateRange, safeLocalStorageSet]);
 
   useEffect(() => {
-    localStorage.setItem('qc_dashboard_uid_search', uidSearch);
-  }, [uidSearch]);
+    safeLocalStorageSet('qc_dashboard_uid_search', uidSearch);
+  }, [uidSearch, safeLocalStorageSet]);
 
   useEffect(() => {
     if (data.length > 0) {
-      localStorage.setItem('qc_dashboard_cached_data', JSON.stringify(data));
+      safeLocalStorageSet('qc_dashboard_cached_data', JSON.stringify(data));
     }
-  }, [data]);
+  }, [data, safeLocalStorageSet]);
 
   useEffect(() => {
     if (headers.length > 0) {
-      localStorage.setItem('qc_dashboard_cached_headers', JSON.stringify(headers));
+      safeLocalStorageSet('qc_dashboard_cached_headers', JSON.stringify(headers));
     }
-  }, [headers]);
+  }, [headers, safeLocalStorageSet]);
 
   useEffect(() => {
-    localStorage.setItem('qc_dashboard_compact_mode', String(isCompactMode));
-  }, [isCompactMode]);
+    safeLocalStorageSet('qc_dashboard_compact_mode', String(isCompactMode));
+  }, [isCompactMode, safeLocalStorageSet]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      if (copyToastTimeoutRef.current) clearTimeout(copyToastTimeoutRef.current);
+    };
+  }, []);
 
   const lastRawData = useRef<string>('');
 
@@ -316,10 +359,9 @@ const App: React.FC = () => {
         };
       });
 
-      // Update state and cache
+      // Update state
       setData(updatedData);
-      localStorage.setItem('qc_dashboard_cached_data', JSON.stringify(updatedData));
-      localStorage.setItem('qc_dashboard_cached_headers', JSON.stringify(sheetHeaders));
+      setHeaders(sheetHeaders);
 
       if (hasBatchCol) {
         const uniqueBatches = Array.from(uniqueBatchesSet)
@@ -601,7 +643,7 @@ const App: React.FC = () => {
     const yieldVal = total > 0 ? (accepted / total) * 100 : 0;
     
     return { total, accepted, rejected, wip, yield: yieldVal, movedToInventory };
-  }, [filteredData, config]);
+  }, [filteredData, config, data, dateRange, selectedBatches, debouncedUidSearch, headers, allUniqueBatches]);
 
   const skuDetails = useMemo(() => {
     const mapping = config.mapping || DEFAULT_MAPPING;
@@ -715,8 +757,8 @@ ${rejectedDetailsStr || 'None'}
 
     navigator.clipboard.writeText(reportText).then(() => {
       setShowCopyToast(true);
-      // Fixed: Change setShowResetToast to setShowCopyToast to fix reference error
-      setTimeout(() => setShowCopyToast(false), 3000);
+      if (copyToastTimeoutRef.current) clearTimeout(copyToastTimeoutRef.current);
+      copyToastTimeoutRef.current = setTimeout(() => setShowCopyToast(false), 3000);
     }).catch(err => {
       console.error('Failed to copy: ', err);
     });
@@ -736,15 +778,15 @@ ${rejectedDetailsStr || 'None'}
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center">
-               <img 
-                   src="/icon-192x192.png"
-                    alt="Dashboard Logo"
-                    style={{ maxHeight: '48px', width: 'auto', objectFit: 'contain' }}
-                     className="rounded-xl"
-                        onError={(e) => {
+                <img 
+                  src={`/logo.png?v=${Date.now()}`}
+                  alt=""
+                  style={{ maxHeight: '48px', width: 'auto', objectFit: 'contain' }}
+                  className="rounded-xl"
+                  onError={(e) => {
                     e.currentTarget.style.display = 'none';
-                        }}
-                    />
+                  }}
+                />
               </div>
               <div>
                 <h1 className="text-xl font-black text-white leading-tight tracking-tight uppercase">Dashboard</h1>

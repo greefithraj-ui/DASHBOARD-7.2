@@ -102,7 +102,10 @@ const KPIGrid: React.FC<KPIGridProps> = ({ stats, loading, onRejectedClick, onAc
     const groups: Record<string, { date: string; accepted: number; rejected: number; yield: number }> = {};
     
     filteredData.forEach(row => {
-      const dateStr = row._parsedDate ? (row._parsedDate as Date).toISOString().split('T')[0] : 'Unknown';
+      const parsedDate = row._parsedDate instanceof Date ? row._parsedDate : (row._parsedDate ? new Date(row._parsedDate) : null);
+      const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+      const dateStr = isValidDate ? parsedDate.toISOString().split('T')[0] : 'Unknown';
+      
       if (!groups[dateStr]) {
         groups[dateStr] = { date: dateStr, accepted: 0, rejected: 0, yield: 0 };
       }
